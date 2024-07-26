@@ -1,0 +1,112 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/des.h>
+
+// Function to handle OpenSSL errors
+void handle_openssl_error(void) {
+    printf("Error occurred in OpenSSL\n");
+    exit(EXIT_FAILURE);
+}
+
+// Function to encrypt using DES in ECB mode
+void des_ecb_encrypt(const unsigned char *plaintext, const unsigned char *key, unsigned char *ciphertext, int len) {
+    DES_key_schedule des_key;
+    DES_set_key_checked((const_DES_cblock *)key, &des_key);
+
+    int num_blocks = len / 8;
+    for (int i = 0; i < num_blocks; ++i) {
+        DES_ecb_encrypt((const_DES_cblock *)(plaintext + i * 8), (DES_cblock *)(ciphertext + i * 8), &des_key, DES_ENCRYPT);
+    }
+}
+
+// Function to decrypt using DES in ECB mode
+void des_ecb_decrypt(const unsigned char *ciphertext, const unsigned char *key, unsigned char *plaintext, int len) {
+    DES_key_schedule des_key;
+    DES_set_key_checked((const_DES_cblock *)key, &des_key);
+
+    int num_blocks = len / 8;
+    for (int i = 0; i < num_blocks; ++i) {
+        DES_ecb_encrypt((const_DES_cblock *)(ciphertext + i * 8), (DES_cblock *)(plaintext + i * 8), &des_key, DES_DECRYPT);
+    }
+}
+
+// Function to encrypt using DES in CBC mode with padding
+void des_cbc_encrypt(const unsigned char *plaintext, const unsigned char *key, const unsigned char *iv, 
+                     unsigned char *ciphertext, int len) {
+    DES_key_schedule des_key;
+    DES_set_key_checked((const_DES_cblock *)key, &des_key);
+
+    DES_cblock ivec;
+    memcpy(&ivec, iv, 8);
+
+    int num_blocks = len / 8;
+    for (int i = 0; i < num_blocks; ++i) {
+        DES_cbc_encrypt(plaintext + i * 8, ciphertext + i * 8, 8, &des_key, &ivec, DES_ENCRYPT);
+    }
+}
+
+// Function to decrypt using DES in CBC mode with padding
+void des_cbc_decrypt(const unsigned char *ciphertext, const unsigned char *key, const unsigned char *iv, 
+                     unsigned char *plaintext, int len) {
+    DES_key_schedule des_key;
+    DES_set_key_checked((const_DES_cblock *)key, &des_key);
+
+    DES_cblock ivec;
+    memcpy(&ivec, iv, 8);
+
+    int num_blocks = len / 8;
+    for (int i = 0; i < num_blocks; ++i) {
+        DES_cbc_encrypt(ciphertext + i * 8, plaintext + i * 8, 8, &des_key, &ivec, DES_DECRYPT);
+    }
+}
+
+// Function to print a byte array as hex
+void print_hex(const unsigned char *array, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        printf("%02X ", array[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    // 56-bit key (DES key size)
+    unsigned char des_key[8] = { 0x13, 0x34, 0x57, 0x79, 0x9B, 0xBC, 0xDF, 0xF1 };
+    // Initialization Vector (IV) for CBC mode
+    unsigned char iv[8] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
+
+    // 64-bit plaintext
+    unsigned char plaintext[16] = { 
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+        0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10
+    };
+    unsigned char ciphertext_ecb[16];
+    unsigned char ciphertext_cbc[16];
+    unsigned char decrypted_ecb[16];
+    unsigned char decrypted_cbc[16];
+
+    printf("Plaintext: ");
+    print_hex(plaintext, 16);
+
+    // Encrypt using ECB mode
+    des_ecb_encrypt(plaintext, des_key, ciphertext_ecb, 16);
+    printf("ECB Ciphertext: ");
+    print_hex(ciphertext_ecb, 16);
+
+    // Decrypt using ECB mode
+    des_ecb_decrypt(ciphertext_ecb, des_key, decrypted_ecb, 16);
+    printf("ECB Decrypted: ");
+    print_hex(decrypted_ecb, 16);
+
+    // Encrypt using CBC mode
+    des_cbc_encrypt(plaintext, des_key, iv, ciphertext_cbc, 16);
+    printf("CBC Ciphertext: ");
+    print_hex(ciphertext_cbc, 16);
+
+    // Decrypt using CBC mode
+    des_cbc_decrypt(ciphertext_cbc, des_key, iv, decrypted_cbc, 16);
+    printf("CBC Decrypted: ");
+    print_hex(decrypted_cbc, 16);
+
+    return 0;
+}
